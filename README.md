@@ -192,6 +192,31 @@ A comprehensive email-based authentication service built with Django, featuring 
 - `GET /api/schema/swagger-ui/` - Swagger UI documentation
 - `GET /api/schema/redoc/` - ReDoc documentation
 
+#### Swagger UI Navigation
+
+The Swagger UI provides an interactive interface for exploring and testing the API:
+
+1. **Access Swagger UI** at `http://localhost:8000/api/schema/swagger-ui/`
+
+2. **Authentication**:
+   - For endpoints requiring authentication, click the **"Authorize"** button
+   - Enter your JWT access token in the format: `Bearer YOUR_ACCESS_TOKEN`
+   - Click **"Authorize"** to apply the token
+
+3. **Testing Endpoints**:
+   - Expand any endpoint section to view its details
+   - Click **"Try it out"** to interact with the endpoint
+   - Fill in the request parameters or body
+   - Click **"Execute"** to send the request
+   - View the response below the request
+
+4. **Key Sections**:
+   - **Authentication**: OTP request/verify endpoints
+   - **Audit**: Audit log retrieval
+   - **Accounts**: Legacy user management endpoints
+
+5. **Response Codes**: Each endpoint shows possible HTTP status codes and their meanings
+
 ## Rate Limiting
 
 The service implements Redis-backed rate limiting with sliding window algorithm:
@@ -328,12 +353,6 @@ services:
   redis:
     image: redis:7-alpine
 
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
-    environment:
-      RABBITMQ_DEFAULT_USER: admin
-      RABBITMQ_DEFAULT_PASS: admin
-
   app:
     build: .
     command: python manage.py runserver 0.0.0.0:8000
@@ -344,12 +363,11 @@ services:
     depends_on:
       - db
       - redis
-      - rabbitmq
     environment:
       - DEBUG=False
       - DB_HOST=db
       - REDIS_URL=redis://redis:6379/0
-      - CELERY_BROKER_URL=amqp://admin:admin@rabbitmq:5672//
+      - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
 
   celery:
@@ -359,9 +377,8 @@ services:
       - .:/code
     depends_on:
       - redis
-      - rabbitmq
     environment:
-      - CELERY_BROKER_URL=amqp://admin:admin@rabbitmq:5672//
+      - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
 
 volumes:
