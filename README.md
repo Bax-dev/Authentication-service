@@ -54,6 +54,7 @@ A comprehensive email-based authentication service built with Django, featuring 
 - Python 3.12+
 - pip
 - Git
+- venv (Python's built-in virtual environment tool)
 
 #### Setup
 
