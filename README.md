@@ -44,7 +44,8 @@ A comprehensive email-based authentication service built with Django, featuring 
    # Examples:
    docker compose exec web python manage.py makemigrations
    docker compose exec web python manage.py migrate
-   docker compose exec web python manage.py createsuperuser
+   # Create superuser with email authentication:
+   docker compose exec -e DJANGO_SUPERUSER_EMAIL=admin@example.com -e DJANGO_SUPERUSER_PASSWORD=admin123 web python manage.py createsuperuser --noinput
    ```
 
 ### Option 2: Local Development
@@ -149,7 +150,15 @@ A comprehensive email-based authentication service built with Django, featuring 
 
 6. **Create superuser:**
    ```bash
-   python manage.py createsuperuser
+   # For email-based authentication, use environment variables:
+   export DJANGO_SUPERUSER_EMAIL=admin@example.com
+   export DJANGO_SUPERUSER_PASSWORD=admin123
+   python manage.py createsuperuser --noinput
+
+   # Or on Windows PowerShell:
+   # $env:DJANGO_SUPERUSER_EMAIL="admin@example.com"
+   # $env:DJANGO_SUPERUSER_PASSWORD="admin123"
+   # python manage.py createsuperuser --noinput
    ```
 
 7. **Start Redis server** (in a separate terminal):
