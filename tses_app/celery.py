@@ -1,0 +1,25 @@
+
+import os
+from celery import Celery
+from celery.schedules import crontab
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tses_app.settings')
+
+app = Celery('tses_app')
+
+
+app.config_from_object('django.conf:settings', namespace='CELERY')
+
+app.autodiscover_tasks()
+
+app.conf.beat_schedule = {
+    'cleanup-expired-data': {
+        'task': 'apps.core.tasks.cleanup_expired_data',
+        'schedule': crontab(hour=2, minute=0),  # Run daily at 2 AM
+    },
+}
+
+@app.task(bind=True)
+def debug_task(self):
+    """Debug task for testing Celery."""
+    print(f'Request: {self.request!r}')
