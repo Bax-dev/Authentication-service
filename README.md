@@ -93,7 +93,7 @@ A comprehensive email-based authentication service built with Django, featuring 
 
 1. **Clone the repository:**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/Bax-dev/Authentication-service.git
    cd tses_app
    ```
 
