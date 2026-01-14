@@ -1,0 +1,86 @@
+# Commands to Test Celery Worker Logs - Email & Audit Task Execution
+# This file contains all commands needed to demonstrate that Celery worker executes email and audit tasks
+
+## 1. Start All Docker Services
+docker-compose down
+docker-compose up -d --build
+
+## 2. Wait for Services to be Ready (about 30 seconds)
+# PostgreSQL, Redis, Celery Worker, and Web services should all be running
+
+## 3. Verify Services are Running
+docker-compose ps
+
+## 4. Check Celery Worker is Connected and Ready
+docker-compose logs --tail=10 celery_worker
+
+## 5. Clear Any Existing Rate Limits (if needed)
+docker-compose exec redis redis-cli KEYS "ratelimit:*" | docker-compose exec -T redis xargs redis-cli DEL
+
+## 6. Make OTP Request to Trigger Tasks
+curl -X POST http://localhost:8000/api/v1/auth/otp/request/ \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com"}'
+
+# Alternative using PowerShell:
+# Invoke-WebRequest -Uri "http://localhost:8000/api/v1/auth/otp/request/" -Method POST -Body '{"email":"test@example.com"}' -ContentType "application/json" -UseBasicParsing
+
+## 7. Check Django Logs (OTP Generation)
+docker-compose logs --tail=10 web
+
+## 8. Check Celery Worker Logs (Task Execution Proof)
+docker-compose logs --tail=20 celery_worker
+
+## 9. Expected Output from Celery Worker Logs:
+# [INFO] Task apps.core.tasks.send_otp_email[...] received
+# [WARNING] SENDING OTP EMAIL: To: test@example.com, Body: Your verification code is: [6-digit-code]
+# [INFO] Task apps.core.tasks.send_otp_email[...] succeeded
+# [INFO] Task apps.core.tasks.write_audit_log[...] received
+# [INFO] Task apps.core.tasks.write_audit_log[...] succeeded
+
+## 10. Check Redis for OTP Storage
+docker-compose exec redis redis-cli KEYS "otp:*"
+
+## 11. Stop Services (when done testing)
+docker-compose down
+
+## Quick Test Commands (PowerShell):
+
+# Start services
+docker-compose up -d --build
+
+# Wait 30 seconds, then test
+Start-Sleep -Seconds 30
+
+# Make request
+Invoke-WebRequest -Uri "http://localhost:8000/api/v1/auth/otp/request/" -Method POST -Body '{"email":"test@example.com"}' -ContentType "application/json" -UseBasicParsing
+
+# Check logs
+docker-compose logs --tail=20 celery_worker
+
+## Expected Results:
+# 1. API returns: {"success":true,"message":"OTP sent to your email","email":"test@example.com","expires_in":"5 minutes"}
+# 2. Django logs show: INFO OTP generated for test@example.com: [6-digit-code]
+# 3. Celery logs show:
+#    - Task send_otp_email received and succeeded
+#    - Email content with OTP code displayed
+#    - Task write_audit_log received and executed
+# 4. Redis contains OTP key: otp:test@example.com
+
+## Troubleshooting:
+
+# If Celery worker not starting:
+docker-compose logs celery_worker
+# Check for "exec format error" - may need to rebuild
+
+# If rate limited:
+docker-compose exec redis redis-cli KEYS "ratelimit:*"
+docker-compose exec redis redis-cli DEL $(docker-compose exec -T redis redis-cli KEYS "ratelimit:*")
+
+# If database connection issues:
+docker-compose logs web
+# Check PostgreSQL connectivity
+
+# Services Status Check:
+docker-compose ps
+# All should show "Up" status
